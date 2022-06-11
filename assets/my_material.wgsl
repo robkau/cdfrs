@@ -26,9 +26,12 @@ fn isGaussianInteger(r: vec2<f32>) -> bool {
 }
 
 [[stage(fragment)]]
+
+// todo pass in number of iterations. https://github.com/bevyengine/bevy/blob/main/assets/shaders/animate_shader.wgsl
+
 fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
 
-    var upto: i32 = 100;
+    var upto: i32 = 25;
     var seenTotal: i32 = 0;
     var seenGaussian: i32 = 0;
 
@@ -39,14 +42,28 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
           break;
         }
 
-        var compare = vec2<f32>(f32(i), f32(i));
 
-        var divided: vec2<f32> = divideComplex(compare, at.uv);
+        {
+              var j: i32 = 0;
+              loop {
+                if (j >= upto) {
+                  break;
+                }
 
-        if (isGaussianInteger(divided)) {
-            seenGaussian = seenGaussian + 1;
+                var compare = vec2<f32>(f32(i), f32(j));
+
+                var divided: vec2<f32> = divideComplex(compare, at.uv);
+
+                if (isGaussianInteger(divided)) {
+                    seenGaussian = seenGaussian + 1;
+                }
+                seenTotal = seenTotal + 1;
+
+                continuing {
+                  j = j + 1;
+                }
+              }
         }
-        seenTotal = seenTotal + 1;
 
         continuing {
           i = i + 1;
@@ -54,8 +71,8 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
       }
     }
 
-    var gaussianRatio: f32 = f32(25 * seenGaussian / seenTotal);
-    var color = vec3<f32>(0.2 * gaussianRatio, 0.2 * gaussianRatio, 1.2 * gaussianRatio);
+    var gaussianRatio: f32 = f32(seenGaussian) / f32(seenTotal);
+    var color = vec3<f32>(clamp(gaussianRatio, 0.0, 1.0), clamp(gaussianRatio, 0.0, 1.0), clamp(5.0* gaussianRatio, 0.0, 1.0));
 
     var output_color = vec4<f32>(color, 1.0);
     return output_color;

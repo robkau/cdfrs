@@ -2,6 +2,8 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+use bevy::render::camera::Camera2d;
+use bevy::window::WindowMode::BorderlessFullscreen;
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
@@ -20,16 +22,13 @@ use bevy::{
 use bevy_inspector_egui::{WorldInspectorParams, WorldInspectorPlugin};
 
 pub const CLEAR: Color = Color::rgb(0.3, 0.3, 0.3);
-pub const HEIGHT: f32 = 900.0;
-pub const RESOLUTION: f32 = 16.0 / 9.0;
 
 fn main() {
     App::new()
         .insert_resource(ClearColor(CLEAR))
         .insert_resource(WindowDescriptor {
-            width: HEIGHT * RESOLUTION,
-            height: HEIGHT,
-            title: "Bevy Template".to_string(),
+            title: "cfdrs".to_string(),
+            mode: BorderlessFullscreen,
             present_mode: PresentMode::Fifo,
             resizable: false,
             ..Default::default()
@@ -44,6 +43,8 @@ fn main() {
         .add_plugin(WorldInspectorPlugin::new())
         .add_startup_system(spawn_camera)
         .add_system(toggle_inspector)
+        .add_system(zoom_out)
+        .add_system(zoom_in)
         .run();
 }
 
@@ -107,16 +108,26 @@ impl RenderAsset for MyMaterial {
     }
 }
 
-fn spawn_camera(mut commands: Commands) {
+fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
     let mut camera = OrthographicCameraBundle::new_2d();
 
-    camera.orthographic_projection.right = 1.0 * RESOLUTION;
-    camera.orthographic_projection.left = -1.0 * RESOLUTION;
+    let wnd = wnds.get_primary().unwrap();
+    let size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
 
-    camera.orthographic_projection.top = 1.0;
-    camera.orthographic_projection.bottom = -1.0;
+    let scale = f32::min(size.x, size.y) / 1.0;
 
-    camera.orthographic_projection.scaling_mode = ScalingMode::None;
+    //camera.transform = Transform::from_translation(Vec3::new(
+    //    size.x / (scale * 2.0),
+    //    size.y / (scale * 2.0),
+    //    0.0,
+    //));
+    camera.orthographic_projection.scale = 1.0 / scale;
+
+    //camera.orthographic_projection.right = 1.0 * RESOLUTION;
+    //camera.orthographic_projection.left = -1.0 * RESOLUTION;
+    //camera.orthographic_projection.top = 1.0;
+    //camera.orthographic_projection.bottom = -1.0;
+    //camera.orthographic_projection.scaling_mode = ScalingMode::None;
 
     commands.spawn_bundle(camera);
 }
@@ -130,7 +141,37 @@ fn toggle_inspector(
     }
 }
 
-#[allow(dead_code)]
-fn slow_down() {
-    std::thread::sleep(std::time::Duration::from_secs_f32(1.000));
+fn zoom_in(mut q_camera: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>) {
+    // todo i should not change camera - ishould change relative coordinates on texture with static camera.
+
+    let mut qc = q_camera.single_mut();
+    let mut camera_transform = qc.0;
+    let mut camera_projection = qc.1;
+
+    // todo follow mouse.
+
+    let camera_translation = &mut camera_transform.translation;
+    camera_translation.x -= 0.0001;
+    camera_translation.y += 0.0001;
+
+    camera_projection.scale *= 0.998;
+}
+
+fn zoom_out(
+    input: ResMut<Input<KeyCode>>,
+    mut q_camera: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
+) {
+    let mut qc = q_camera.single_mut();
+    let mut camera_transform = qc.0;
+    let mut camera_projection = qc.1;
+
+    let camera_translation = &mut camera_transform.translation;
+
+    if input.just_pressed(KeyCode::W) {
+        camera_translation.y += 0.1;
+    }
+
+    if input.just_pressed(KeyCode::S) {
+        camera_projection.scale *= 1.1;
+    }
 }
