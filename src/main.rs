@@ -43,7 +43,6 @@ fn main() {
         .add_plugin(WorldInspectorPlugin::new())
         .add_startup_system(spawn_camera)
         .add_system(toggle_inspector)
-        .add_system(zoom_out)
         .add_system(zoom_in)
         .run();
 }
@@ -53,8 +52,21 @@ fn spawn_quad(
     mut mesh_assets: ResMut<Assets<Mesh>>,
     mut my_material_assets: ResMut<Assets<MyMaterial>>,
 ) {
+    let mut m = Mesh::from(shape::Quad::default());
+    let mut uvs1 = Vec::new();
+    uvs1.push([-10.0, 10.0]);
+    uvs1.push([-10.0, -10.0]);
+    uvs1.push([10.0, -10.0]);
+    uvs1.push([10.0, 10.0]);
+    m.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs1);
+
+    //let mut p = Vec::new();
+    //p.push(0.5);
+    //p.push(0.5);
+    //m.insert_attribute(Mesh::ATTRIBUTE_POSITION, p);
+
     commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: mesh_assets.add(Mesh::from(shape::Quad::default())).into(),
+        mesh: mesh_assets.add(m).into(),
         material: my_material_assets.add(MyMaterial),
         ..default()
     });
@@ -122,9 +134,8 @@ fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
     //    0.0,
     //));
     camera.orthographic_projection.scale = 1.0 / scale;
-
-    //camera.orthographic_projection.right = 1.0 * RESOLUTION;
-    //camera.orthographic_projection.left = -1.0 * RESOLUTION;
+    //camera.orthographic_projection.right = 1.0;
+    //camera.orthographic_projection.left = -1.0;
     //camera.orthographic_projection.top = 1.0;
     //camera.orthographic_projection.bottom = -1.0;
     //camera.orthographic_projection.scaling_mode = ScalingMode::None;
@@ -141,37 +152,30 @@ fn toggle_inspector(
     }
 }
 
-fn zoom_in(mut q_camera: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>) {
-    // todo i should not change camera - ishould change relative coordinates on texture with static camera.
-
-    let mut qc = q_camera.single_mut();
-    let mut camera_transform = qc.0;
-    let mut camera_projection = qc.1;
-
-    // todo follow mouse.
-
-    let camera_translation = &mut camera_transform.translation;
-    camera_translation.x -= 0.0001;
-    camera_translation.y += 0.0001;
-
-    camera_projection.scale *= 0.998;
-}
-
-fn zoom_out(
+fn zoom_in(
     input: ResMut<Input<KeyCode>>,
     mut q_camera: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
+    windows: Res<Windows>,
 ) {
     let mut qc = q_camera.single_mut();
     let mut camera_transform = qc.0;
     let mut camera_projection = qc.1;
 
-    let camera_translation = &mut camera_transform.translation;
+    // todo follow mouse.!
+    let window = windows.get_primary().unwrap();
+    if let Some(cursor_pos) = window.cursor_position() {
+        // cursor is inside the window.
+        let size = Vec2::new(window.width() as f32, window.height() as f32);
 
-    if input.just_pressed(KeyCode::W) {
-        camera_translation.y += 0.1;
+        let cursor_offset_from_center = size / 2.0 - cursor_pos;
+        let camera_translation = &mut camera_transform.translation;
+        // todo prefer changing UV map, not the camera.
+        camera_projection.scale *= 0.999;
+        camera_translation.x -= cursor_offset_from_center.x * camera_projection.scale / 1000.;
+        camera_translation.y -= cursor_offset_from_center.y * camera_projection.scale / 1000.;
     }
 
-    if input.just_pressed(KeyCode::S) {
-        camera_projection.scale *= 1.1;
+    if input.pressed(KeyCode::R) {
+        camera_projection.scale *= 1.01;
     }
 }
