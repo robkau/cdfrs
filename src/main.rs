@@ -176,6 +176,6 @@ fn zoom_in(
     }
 
     if input.pressed(KeyCode::R) {
-        camera_projection.scale *= 1.01;
+        camera_projection.scale *= 1.005;
     }
 }

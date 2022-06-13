@@ -40,7 +40,7 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
     //at.uv.x = at.uv.x * scale;
     //at.uv.y = at.uv.y * scale;
 
-    var upto: i32 = 3;
+    var upto: i32 = 9;
     var seenTotal: i32 = 0;
     var seenGaussian: i32 = 0;
 
@@ -80,7 +80,21 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
     var g: f32 = gaussianRatio;
     var b: f32 =gaussianRatio;
 
-    var color = vec3<f32>(clamp(r, 0.0, 1.0), clamp(g, 0.0, 1.0), clamp(b, 0.0, 1.0));
+    var rc: f32 = clamp(r, 0.0, 1.0);
+    var gc: f32 = clamp(g, 0.0, 1.0);
+    var bc: f32 = clamp(b, 0.0, 1.0);
+
+    if (gaussianRatio < 0.2) {
+        gc = 0.;
+    }
+    if (gaussianRatio < 0.4) {
+        bc = 0.;
+    }
+
+
+    var color = vec3<f32>(rc, gc, bc);
+
+
 
     var output_color = vec4<f32>(color, 1.0);
     return output_color;
