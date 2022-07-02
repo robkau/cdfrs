@@ -2,7 +2,13 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+use crate::KeyCode::Z;
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::render::camera::Camera2d;
+use bevy::render::mesh::VertexAttributeValues;
+use bevy::render::mesh::VertexAttributeValues::Float32x2;
+use bevy::render::render_resource::VertexFormat;
+use bevy::sprite::{Mesh2dHandle, SpecializedMaterial2d};
 use bevy::window::WindowMode::BorderlessFullscreen;
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
@@ -29,12 +35,13 @@ fn main() {
         .insert_resource(WindowDescriptor {
             title: "cfdrs".to_string(),
             mode: BorderlessFullscreen,
-            present_mode: PresentMode::Fifo,
+            //present_mode: PresentMode::Fifo,
             resizable: false,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(Material2dPlugin::<MyMaterial>::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(spawn_quad)
         .insert_resource(WorldInspectorParams {
             enabled: false,
@@ -53,17 +60,12 @@ fn spawn_quad(
     mut my_material_assets: ResMut<Assets<MyMaterial>>,
 ) {
     let mut m = Mesh::from(shape::Quad::default());
-    let mut uvs1 = Vec::new();
+    let mut uvs1 = Vec::with_capacity(4);
     uvs1.push([-10.0, 10.0]);
     uvs1.push([-10.0, -10.0]);
     uvs1.push([10.0, -10.0]);
     uvs1.push([10.0, 10.0]);
     m.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs1);
-
-    //let mut p = Vec::new();
-    //p.push(0.5);
-    //p.push(0.5);
-    //m.insert_attribute(Mesh::ATTRIBUTE_POSITION, p);
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
@@ -152,30 +154,73 @@ fn toggle_inspector(
     }
 }
 
-fn zoom_in(
-    input: ResMut<Input<KeyCode>>,
-    mut q_camera: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
-    windows: Res<Windows>,
-) {
-    let mut qc = q_camera.single_mut();
-    let mut camera_transform = qc.0;
-    let mut camera_projection = qc.1;
+struct ZoomState {
+    offset: Vec2,
+    width: f32,
+}
 
-    // todo follow mouse.!
-    let window = windows.get_primary().unwrap();
-    if let Some(cursor_pos) = window.cursor_position() {
-        // cursor is inside the window.
-        let size = Vec2::new(window.width() as f32, window.height() as f32);
-
-        let cursor_offset_from_center = size / 2.0 - cursor_pos;
-        let camera_translation = &mut camera_transform.translation;
-        // todo prefer changing UV map, not the camera.
-        camera_projection.scale *= 0.999;
-        camera_translation.x -= cursor_offset_from_center.x * camera_projection.scale / 1000.;
-        camera_translation.y -= cursor_offset_from_center.y * camera_projection.scale / 1000.;
-    }
-
-    if input.pressed(KeyCode::R) {
-        camera_projection.scale *= 1.005;
+impl Default for ZoomState {
+    fn default() -> Self {
+        ZoomState {
+            offset: Default::default(),
+            width: 10.0,
+        }
     }
 }
+
+fn zoom_in(
+    input: ResMut<Input<KeyCode>>,
+    windows: Res<Windows>,
+    mut mesh: Query<(&mut Mesh2dHandle)>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut zs: Local<ZoomState>,
+) {
+    let window = windows.get_primary().unwrap();
+    if let Some(cursor_pos) = window.cursor_position() {
+        let size = Vec2::new(window.width() as f32, window.height() as f32);
+        let cursor_offset_from_center = (size / 2.0 - cursor_pos) / size;
+        zs.offset = zs.offset + (cursor_offset_from_center * zs.width / 18.);
+
+        if input.pressed(KeyCode::W) {
+            zs.width *= 0.99;
+        }
+        if input.pressed(KeyCode::S) {
+            zs.width *= 1.01;
+        }
+
+        // zoom in
+        let mesh_asset = mesh_assets.get_mut(mesh.single_mut().clone().0).unwrap();
+        let mut uvs = mesh_asset.attribute_mut(Mesh::ATTRIBUTE_UV_0).unwrap();
+        match uvs {
+            Float32x2(uvss) => {
+                uvss[0] = [-zs.width - zs.offset.x, zs.width + zs.offset.y];
+                uvss[1] = [-zs.width - zs.offset.x, -zs.width + zs.offset.y];
+                uvss[2] = [zs.width - zs.offset.x, -zs.width + zs.offset.y];
+                uvss[3] = [zs.width - zs.offset.x, zs.width + zs.offset.y];
+            }
+            _ => {
+                unreachable!()
+            }
+        }
+
+        /*
+        // todo lag.
+        let mesh_asset = mesh_assets.get_mut(mesh.single_mut().clone().0).unwrap();
+
+        let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(4);
+        uvs.push([-zs.width - zs.offset.x, zs.width + zs.offset.y]);
+        uvs.push([-zs.width - zs.offset.x, -zs.width + zs.offset.y]);
+        uvs.push([zs.width - zs.offset.x, -zs.width + zs.offset.y]);
+        uvs.push([zs.width - zs.offset.x, zs.width + zs.offset.y]);
+        let uvss = VertexAttributeValues::Float32x2(uvs);
+
+        mesh_asset.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvss);
+        */
+    }
+}
+
+// classifying image outputs:
+// symmetries (xy/etc)
+// cohesion
+// detail
+// color balance

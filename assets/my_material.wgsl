@@ -40,7 +40,7 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
     //at.uv.x = at.uv.x * scale;
     //at.uv.y = at.uv.y * scale;
 
-    var upto: i32 = 9;
+    var upto: i32 = 100;
     var seenTotal: i32 = 0;
     var seenGaussian: i32 = 0;
 
@@ -52,33 +52,34 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
         }
 
 
-        {
-              //var j: i32 = 0;
-              //loop {
-              //  if (j >= upto) {
-              //    break;
-              //  }
+        //{
+        //      var j: i32 = 0;
+        //      loop {
+        //        if (j >= upto) {
+        //          break;
+        //        }
                 var compare = vec2<f32>(f32(i), f32(i));
                 var divided: vec2<f32> = divideComplex(compare, at.uv);
                 if (isGaussianInteger(divided)) {
                     seenGaussian = seenGaussian + 1;
                 }
                 seenTotal = seenTotal + 1;
-              //  continuing {
-              //    j = j + 1;
-              //  }
-              //}
-        }
+        //        continuing {
+        //          j = j + 1;
+        //        }
+        //      }
+        //}
         continuing {
           i = i + 1;
         }
       }
     }
 
-    var gaussianRatio: f32 = f32(seenGaussian) / f32(seenTotal);
+    var gaussianRatioScale: f32 = 2.0;
+    var gaussianRatio: f32 = gaussianRatioScale * f32(seenGaussian) / f32(seenTotal);
     var r: f32 = gaussianRatio;
     var g: f32 = gaussianRatio;
-    var b: f32 =gaussianRatio;
+    var b: f32 = gaussianRatio;
 
     var rc: f32 = clamp(r, 0.0, 1.0);
     var gc: f32 = clamp(g, 0.0, 1.0);
@@ -87,7 +88,7 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
     if (gaussianRatio < 0.2) {
         gc = 0.;
     }
-    if (gaussianRatio < 0.4) {
+    if (gaussianRatio < 0.7) {
         bc = 0.;
     }
 
