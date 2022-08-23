@@ -2,26 +2,16 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::KeyCode::Z;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::render::mesh::VertexAttributeValues;
 use bevy::render::mesh::VertexAttributeValues::Float32x2;
-use bevy::render::render_resource::{AsBindGroup, ShaderRef, VertexFormat};
+use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::sprite::Mesh2dHandle;
 use bevy::window::WindowMode::BorderlessFullscreen;
 use bevy::{
-    ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
     reflect::TypeUuid,
-    render::{
-        camera::ScalingMode,
-        render_asset::{PrepareAssetError, RenderAsset},
-        render_resource::{
-            BindGroup, BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor,
-        },
-        renderer::RenderDevice,
-    },
-    sprite::{Material2d, Material2dPipeline, Material2dPlugin, MaterialMesh2dBundle},
+    sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
     window::PresentMode,
 };
 use bevy_inspector_egui::{WorldInspectorParams, WorldInspectorPlugin};
@@ -59,11 +49,7 @@ fn spawn_quad(
     mut my_material_assets: ResMut<Assets<MyMaterial>>,
 ) {
     let mut m = Mesh::from(shape::Quad::default());
-    let mut uvs1 = Vec::with_capacity(4);
-    uvs1.push([-10.0, 10.0]);
-    uvs1.push([-10.0, -10.0]);
-    uvs1.push([10.0, -10.0]);
-    uvs1.push([10.0, 10.0]);
+    let uvs1 = vec![[-10.0, 10.0], [-10.0, -10.0], [10.0, -10.0], [10.0, 10.0]];
     m.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs1);
 
     commands.spawn_bundle(MaterialMesh2dBundle {
@@ -132,7 +118,7 @@ impl Default for ZoomState {
 fn zoom_in(
     input: ResMut<Input<KeyCode>>,
     windows: Res<Windows>,
-    mut mesh: Query<(&mut Mesh2dHandle)>,
+    mut mesh: Query<&mut Mesh2dHandle>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     mut zs: Local<ZoomState>,
 ) {
@@ -140,7 +126,8 @@ fn zoom_in(
     if let Some(cursor_pos) = window.cursor_position() {
         let size = Vec2::new(window.width() as f32, window.height() as f32);
         let cursor_offset_from_center = (size / 2.0 - cursor_pos) / size;
-        zs.offset = zs.offset + (cursor_offset_from_center * zs.width / 18.);
+        let width = zs.width;
+        zs.offset += cursor_offset_from_center * width / 18.;
 
         if input.pressed(KeyCode::W) {
             zs.width *= 0.99;
@@ -151,7 +138,7 @@ fn zoom_in(
 
         // zoom in
         let mesh_asset = mesh_assets.get_mut(&mesh.single_mut().clone().0).unwrap();
-        let mut uvs = mesh_asset.attribute_mut(Mesh::ATTRIBUTE_UV_0).unwrap();
+        let uvs = mesh_asset.attribute_mut(Mesh::ATTRIBUTE_UV_0).unwrap();
         match uvs {
             Float32x2(uvss) => {
                 uvss[0] = [-zs.width - zs.offset.x, zs.width + zs.offset.y];
@@ -167,11 +154,12 @@ fn zoom_in(
         // todo lag.
         let mesh_asset = mesh_assets.get_mut(&mesh.single_mut().clone().0).unwrap();
 
-        let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(4);
-        uvs.push([-zs.width - zs.offset.x, zs.width + zs.offset.y]);
-        uvs.push([-zs.width - zs.offset.x, -zs.width + zs.offset.y]);
-        uvs.push([zs.width - zs.offset.x, -zs.width + zs.offset.y]);
-        uvs.push([zs.width - zs.offset.x, zs.width + zs.offset.y]);
+        let uvs: Vec<[f32; 2]> = vec![
+            [-zs.width - zs.offset.x, zs.width + zs.offset.y],
+            [-zs.width - zs.offset.x, -zs.width + zs.offset.y],
+            [zs.width - zs.offset.x, -zs.width + zs.offset.y],
+            [zs.width - zs.offset.x, zs.width + zs.offset.y],
+        ];
         let uvss = VertexAttributeValues::Float32x2(uvs);
 
         mesh_asset.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvss);
