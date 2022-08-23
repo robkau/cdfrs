@@ -77,17 +77,7 @@ fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
 
     let scale = f32::min(size.x, size.y) / 1.0;
 
-    //camera.transform = Transform::from_translation(Vec3::new(
-    //    size.x / (scale * 2.0),
-    //    size.y / (scale * 2.0),
-    //    0.0,
-    //));
     camera.projection.scale = 1.0 / scale;
-    //camera.orthographic_projection.right = 1.0;
-    //camera.orthographic_projection.left = -1.0;
-    //camera.orthographic_projection.top = 1.0;
-    //camera.orthographic_projection.bottom = -1.0;
-    //camera.orthographic_projection.scaling_mode = ScalingMode::None;
 
     commands.spawn_bundle(camera);
 }
@@ -151,7 +141,6 @@ fn zoom_in(
             }
         }
 
-        // todo lag.
         let mesh_asset = mesh_assets.get_mut(&mesh.single_mut().clone().0).unwrap();
 
         let uvs: Vec<[f32; 2]> = vec![
