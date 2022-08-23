@@ -4,11 +4,10 @@
 
 use crate::KeyCode::Z;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy::render::camera::Camera2d;
 use bevy::render::mesh::VertexAttributeValues;
 use bevy::render::mesh::VertexAttributeValues::Float32x2;
-use bevy::render::render_resource::VertexFormat;
-use bevy::sprite::{Mesh2dHandle, SpecializedMaterial2d};
+use bevy::render::render_resource::{AsBindGroup, ShaderRef, VertexFormat};
+use bevy::sprite::Mesh2dHandle;
 use bevy::window::WindowMode::BorderlessFullscreen;
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
@@ -35,7 +34,7 @@ fn main() {
         .insert_resource(WindowDescriptor {
             title: "cfdrs".to_string(),
             mode: BorderlessFullscreen,
-            //present_mode: PresentMode::Fifo,
+            present_mode: PresentMode::Immediate,
             resizable: false,
             ..Default::default()
         })
@@ -69,61 +68,23 @@ fn spawn_quad(
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
-        material: my_material_assets.add(MyMaterial),
+        material: my_material_assets.add(MyMaterial {}),
         ..default()
     });
 }
 
-#[derive(TypeUuid, Clone)]
+#[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "bc2f08eb-a0fb-43f1-a908-54871ea597d5"]
-struct MyMaterial;
-
-struct MyMaterialGPU {
-    bind_group: BindGroup,
-}
+struct MyMaterial {}
 
 impl Material2d for MyMaterial {
-    fn bind_group(material: &MyMaterialGPU) -> &BindGroup {
-        &material.bind_group
-    }
-
-    fn bind_group_layout(render_device: &RenderDevice) -> BindGroupLayout {
-        render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: None,
-            entries: &[],
-        })
-    }
-
-    fn fragment_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
-        asset_server.watch_for_changes().unwrap();
-        Some(asset_server.load("my_material.wgsl"))
-    }
-}
-
-impl RenderAsset for MyMaterial {
-    type ExtractedAsset = MyMaterial;
-    type PreparedAsset = MyMaterialGPU;
-    type Param = (SRes<RenderDevice>, SRes<Material2dPipeline<MyMaterial>>);
-
-    fn extract_asset(&self) -> MyMaterial {
-        self.clone()
-    }
-
-    fn prepare_asset(
-        _extracted_asset: MyMaterial,
-        (render_device, pipeline): &mut SystemParamItem<Self::Param>,
-    ) -> Result<MyMaterialGPU, PrepareAssetError<MyMaterial>> {
-        let bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-            label: None,
-            layout: &pipeline.material2d_layout,
-            entries: &[],
-        });
-        Ok(MyMaterialGPU { bind_group })
+    fn fragment_shader() -> ShaderRef {
+        "my_material.wgsl".into()
     }
 }
 
 fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
-    let mut camera = OrthographicCameraBundle::new_2d();
+    let mut camera = Camera2dBundle::default();
 
     let wnd = wnds.get_primary().unwrap();
     let size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
@@ -135,7 +96,7 @@ fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
     //    size.y / (scale * 2.0),
     //    0.0,
     //));
-    camera.orthographic_projection.scale = 1.0 / scale;
+    camera.projection.scale = 1.0 / scale;
     //camera.orthographic_projection.right = 1.0;
     //camera.orthographic_projection.left = -1.0;
     //camera.orthographic_projection.top = 1.0;
@@ -189,7 +150,7 @@ fn zoom_in(
         }
 
         // zoom in
-        let mesh_asset = mesh_assets.get_mut(mesh.single_mut().clone().0).unwrap();
+        let mesh_asset = mesh_assets.get_mut(&mesh.single_mut().clone().0).unwrap();
         let mut uvs = mesh_asset.attribute_mut(Mesh::ATTRIBUTE_UV_0).unwrap();
         match uvs {
             Float32x2(uvss) => {
@@ -203,9 +164,8 @@ fn zoom_in(
             }
         }
 
-        /*
         // todo lag.
-        let mesh_asset = mesh_assets.get_mut(mesh.single_mut().clone().0).unwrap();
+        let mesh_asset = mesh_assets.get_mut(&mesh.single_mut().clone().0).unwrap();
 
         let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(4);
         uvs.push([-zs.width - zs.offset.x, zs.width + zs.offset.y]);
@@ -215,7 +175,6 @@ fn zoom_in(
         let uvss = VertexAttributeValues::Float32x2(uvs);
 
         mesh_asset.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvss);
-        */
     }
 }
 

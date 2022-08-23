@@ -1,9 +1,9 @@
 //https://github.com/bevyengine/bevy/blob/c2da7800e3671ad92e775529070a814d0bc2f5f8/crates/bevy_sprite/src/mesh2d/mesh2d.wgsl
 struct VertexOutput {
-    [[builtin(position)]] clip_position: vec4<f32>;
-    [[location(0)]] world_position: vec4<f32>;
-    [[location(1)]] world_normal: vec3<f32>;
-    [[location(2)]] uv: vec2<f32>;
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) world_position: vec4<f32>,
+    @location(1) world_normal: vec3<f32>,
+    @location(2) uv: vec2<f32>,
 };
 
 fn divideComplex(r: vec2<f32>, u: vec2<f32>) -> vec2<f32> {
@@ -33,14 +33,14 @@ fn isGaussianInteger(r: vec2<f32>) -> bool {
 // todo pass in number of iterations. https://github.com/bevyengine/bevy/blob/main/assets/shaders/animate_shader.wgsl https://github.com/bevyengine/bevy/blob/main/examples/shader/animate_shader.rs
 // todo pass in camera offset and scale.
 // todo pass in color hint
-[[stage(fragment)]]
-fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fragment(at: VertexOutput) -> @location(0) vec4<f32> {
 
     //var scale: f32 = 0.1;
     //at.uv.x = at.uv.x * scale;
     //at.uv.y = at.uv.y * scale;
 
-    var upto: i32 = 100;
+    var upto: i32 = 11;
     var seenTotal: i32 = 0;
     var seenGaussian: i32 = 0;
 
@@ -52,30 +52,30 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
         }
 
 
-        //{
-        //      var j: i32 = 0;
-        //      loop {
-        //        if (j >= upto) {
-        //          break;
-        //        }
-                var compare = vec2<f32>(f32(i), f32(i));
+        {
+              var j: i32 = 0;
+              loop {
+                if (j >= upto) {
+                  break;
+                }
+                var compare = vec2<f32>(f32(i), f32(j));
                 var divided: vec2<f32> = divideComplex(compare, at.uv);
                 if (isGaussianInteger(divided)) {
                     seenGaussian = seenGaussian + 1;
                 }
                 seenTotal = seenTotal + 1;
-        //        continuing {
-        //          j = j + 1;
-        //        }
-        //      }
-        //}
+                continuing {
+                  j = j + 1;
+                }
+              }
+        }
         continuing {
           i = i + 1;
         }
       }
     }
 
-    var gaussianRatioScale: f32 = 2.0;
+    var gaussianRatioScale: f32 = 3.0;
     var gaussianRatio: f32 = gaussianRatioScale * f32(seenGaussian) / f32(seenTotal);
     var r: f32 = gaussianRatio;
     var g: f32 = gaussianRatio;
@@ -85,6 +85,7 @@ fn fragment(at: VertexOutput) -> [[location(0)]] vec4<f32> {
     var gc: f32 = clamp(g, 0.0, 1.0);
     var bc: f32 = clamp(b, 0.0, 1.0);
 
+    // colorize
     if (gaussianRatio < 0.2) {
         gc = 0.;
     }
