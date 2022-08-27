@@ -15,6 +15,7 @@ use bevy::{
     window::PresentMode,
 };
 use bevy_inspector_egui::{WorldInspectorParams, WorldInspectorPlugin};
+use std::process;
 
 pub const CLEAR: Color = Color::rgb(0.3, 0.3, 0.3);
 
@@ -40,6 +41,7 @@ fn main() {
         .add_startup_system(spawn_camera)
         .add_system(toggle_inspector)
         .add_system(zoom_in)
+        .add_system(handle_exit)
         .run();
 }
 
@@ -80,6 +82,12 @@ fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
     camera.projection.scale = 1.0 / scale;
 
     commands.spawn_bundle(camera);
+}
+
+fn handle_exit(input: ResMut<Input<KeyCode>>) {
+    if input.just_pressed(KeyCode::Q) {
+        process::exit(0);
+    }
 }
 
 fn toggle_inspector(
