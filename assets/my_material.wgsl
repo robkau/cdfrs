@@ -25,12 +25,18 @@ fn isGaussianInteger(r: vec2<f32>) -> bool {
 	return false;
 }
 
-// todo pass in number of iterations. https://github.com/bevyengine/bevy/blob/main/assets/shaders/animate_shader.wgsl https://github.com/bevyengine/bevy/blob/main/examples/shader/animate_shader.rs
-// todo pass in camera offset and scale.
 // todo pass in color hint
+// todo use bool or includes to set single/double render
+struct MyMaterial {
+    iterations: i32,
+}
+
+@group(1) @binding(0)
+var <uniform> material: MyMaterial;
+
 @fragment
 fn fragment(at: VertexOutput) -> @location(0) vec4<f32> {
-    var upto: i32 = 11;
+    var upto: i32 = material.iterations;
     var seenTotal: i32 = 0;
     var seenGaussian: i32 = 0;
 

@@ -41,6 +41,7 @@ fn main() {
         .add_startup_system(spawn_camera)
         .add_system(toggle_inspector)
         .add_system(zoom_in)
+        .add_system(update_material_iterations)
         .add_system(handle_exit)
         .run();
 }
@@ -56,14 +57,36 @@ fn spawn_quad(
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
-        material: my_material_assets.add(MyMaterial {}),
+        material: my_material_assets.add(MyMaterial { iterations: 11 }),
         ..default()
     });
 }
 
+fn update_material_iterations(
+    input: ResMut<Input<KeyCode>>,
+    mut material_handle: Query<&mut Handle<MyMaterial>>,
+    mut my_material_assets: ResMut<Assets<MyMaterial>>,
+) {
+    if input.just_pressed(KeyCode::A) {
+        for mh in material_handle.iter_mut() {
+            let m = my_material_assets.get_mut(&mh).unwrap();
+            m.iterations -= 1;
+        }
+    }
+    if input.just_pressed(KeyCode::D) {
+        for mh in material_handle.iter_mut() {
+            let m = my_material_assets.get_mut(&mh).unwrap();
+            m.iterations += 1;
+        }
+    }
+}
+
 #[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "bc2f08eb-a0fb-43f1-a908-54871ea597d5"]
-struct MyMaterial {}
+struct MyMaterial {
+    #[uniform(0)]
+    iterations: i32,
+}
 
 impl Material2d for MyMaterial {
     fn fragment_shader() -> ShaderRef {
