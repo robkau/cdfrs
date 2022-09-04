@@ -25,14 +25,12 @@ fn isGaussianInteger(r: vec2<f32>) -> bool {
 	return false;
 }
 
-// todo pass in color hint
-// todo use bool or includes to set single/double render
-struct MyMaterial {
+struct ComplexDivisorFractalSingleLoop {
     iterations: i32,
 }
 
 @group(1) @binding(0)
-var <uniform> material: MyMaterial;
+var <uniform> material: ComplexDivisorFractalSingleLoop;
 
 @fragment
 fn fragment(at: VertexOutput) -> @location(0) vec4<f32> {
@@ -47,23 +45,13 @@ fn fragment(at: VertexOutput) -> @location(0) vec4<f32> {
           break;
         }
 
-        {
-              var j: i32 = 0;
-              loop {
-                if (j >= upto) {
-                  break;
-                }
-                var compare = vec2<f32>(f32(i), f32(j));
-                var divided: vec2<f32> = divideComplex(compare, at.uv);
-                if (isGaussianInteger(divided)) {
-                    seenGaussian = seenGaussian + 1;
-                }
-                seenTotal = seenTotal + 1;
-                continuing {
-                  j = j + 1;
-                }
-              }
+        var compare = vec2<f32>(f32(i), f32(i));
+        var divided: vec2<f32> = divideComplex(compare, at.uv);
+        if (isGaussianInteger(divided)) {
+            seenGaussian = seenGaussian + 1;
         }
+        seenTotal = seenTotal + 1;
+
         continuing {
           i = i + 1;
         }

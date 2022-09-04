@@ -30,7 +30,9 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
-        .add_plugin(Material2dPlugin::<MyMaterial>::default())
+        .add_plugin(Material2dPlugin::<ComplexDivisorFractalSingleLoop>::default())
+        .add_plugin(Material2dPlugin::<ComplexDivisorFractalDoubleLoop>::default())
+        .add_plugin(Material2dPlugin::<Mandelbrot>::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(spawn_quad)
         .insert_resource(WorldInspectorParams {
@@ -49,7 +51,7 @@ fn main() {
 fn spawn_quad(
     mut commands: Commands,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    mut my_material_assets: ResMut<Assets<MyMaterial>>,
+    mut my_material_assets: ResMut<Assets<Mandelbrot>>,
 ) {
     let mut m = Mesh::from(shape::Quad::default());
     let uvs1 = vec![[-10.0, 10.0], [-10.0, -10.0], [10.0, -10.0], [10.0, 10.0]];
@@ -57,15 +59,15 @@ fn spawn_quad(
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
-        material: my_material_assets.add(MyMaterial { iterations: 11 }),
+        material: my_material_assets.add(Mandelbrot {}),
         ..default()
     });
 }
 
 fn update_material_iterations(
     input: ResMut<Input<KeyCode>>,
-    mut material_handle: Query<&mut Handle<MyMaterial>>,
-    mut my_material_assets: ResMut<Assets<MyMaterial>>,
+    mut material_handle: Query<&mut Handle<ComplexDivisorFractalDoubleLoop>>,
+    mut my_material_assets: ResMut<Assets<ComplexDivisorFractalDoubleLoop>>,
 ) {
     if input.just_pressed(KeyCode::A) {
         for mh in material_handle.iter_mut() {
@@ -83,14 +85,37 @@ fn update_material_iterations(
 
 #[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "bc2f08eb-a0fb-43f1-a908-54871ea597d5"]
-struct MyMaterial {
+struct ComplexDivisorFractalSingleLoop {
     #[uniform(0)]
     iterations: i32,
 }
 
-impl Material2d for MyMaterial {
+impl Material2d for ComplexDivisorFractalSingleLoop {
     fn fragment_shader() -> ShaderRef {
-        "my_material.wgsl".into()
+        "cdf_single.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "196e05fa-1271-4dd7-a6b8-686c4b50bf02"]
+struct ComplexDivisorFractalDoubleLoop {
+    #[uniform(0)]
+    iterations: i32,
+}
+
+impl Material2d for ComplexDivisorFractalDoubleLoop {
+    fn fragment_shader() -> ShaderRef {
+        "cdf_double.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "dcb63d2f-2261-4659-b340-9eead095160e"]
+struct Mandelbrot {}
+
+impl Material2d for Mandelbrot {
+    fn fragment_shader() -> ShaderRef {
+        "mandelbrot.wgsl".into()
     }
 }
 
