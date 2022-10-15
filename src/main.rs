@@ -50,7 +50,7 @@ fn main() {
 fn spawn_quad(
     mut commands: Commands,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    mut my_material_assets: ResMut<Assets<ComplexDivisorFractalDoubleLoop>>,
+    mut my_material_assets: ResMut<Assets<ComplexDivisorFractalSingleLoop>>,
 ) {
     let mut m = Mesh::from(shape::Quad::default());
     let uvs1 = vec![[-10.0, 10.0], [-10.0, -10.0], [10.0, -10.0], [10.0, 10.0]];
@@ -58,7 +58,7 @@ fn spawn_quad(
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
-        material: my_material_assets.add(ComplexDivisorFractalDoubleLoop { iterations: 12 }),
+        material: my_material_assets.add(ComplexDivisorFractalSingleLoop { iterations: 120 }),
         ..default()
     });
 }
