@@ -29,7 +29,9 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
-        .add_plugin(Material2dPlugin::<MyMaterial>::default())
+        .add_plugin(Material2dPlugin::<ComplexDivisorFractalSingleLoop>::default())
+        .add_plugin(Material2dPlugin::<ComplexDivisorFractalDoubleLoop>::default())
+        .add_plugin(Material2dPlugin::<Mandelbrot>::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(spawn_quad)
         .insert_resource(WorldInspectorParams {
@@ -40,13 +42,15 @@ fn main() {
         .add_startup_system(spawn_camera)
         .add_system(toggle_inspector)
         .add_system(zoom_in)
+        .add_system(update_material_iterations)
+        .add_system(bevy::window::close_on_esc)
         .run();
 }
 
 fn spawn_quad(
     mut commands: Commands,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    mut my_material_assets: ResMut<Assets<MyMaterial>>,
+    mut my_material_assets: ResMut<Assets<ComplexDivisorFractalSingleLoop>>,
 ) {
     let mut m = Mesh::from(shape::Quad::default());
     let uvs1 = vec![[-10.0, 10.0], [-10.0, -10.0], [10.0, -10.0], [10.0, 10.0]];
@@ -54,18 +58,75 @@ fn spawn_quad(
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
-        material: my_material_assets.add(MyMaterial {}),
+        material: my_material_assets.add(ComplexDivisorFractalSingleLoop { iterations: 120 }),
         ..default()
     });
 }
 
+fn update_material_iterations(
+    input: ResMut<Input<KeyCode>>,
+    mut single_material_handle: Query<&mut Handle<ComplexDivisorFractalSingleLoop>>,
+    mut single_my_material_assets: ResMut<Assets<ComplexDivisorFractalSingleLoop>>,
+    mut double_material_handle: Query<&mut Handle<ComplexDivisorFractalDoubleLoop>>,
+    mut double_my_material_assets: ResMut<Assets<ComplexDivisorFractalDoubleLoop>>,
+) {
+    if input.just_pressed(KeyCode::A) {
+        for mh in single_material_handle.iter_mut() {
+            let m = single_my_material_assets.get_mut(&mh).unwrap();
+            m.iterations -= 1;
+        }
+
+        for mh in double_material_handle.iter_mut() {
+            let m = double_my_material_assets.get_mut(&mh).unwrap();
+            m.iterations -= 1;
+        }
+    }
+    if input.just_pressed(KeyCode::D) {
+        for mh in single_material_handle.iter_mut() {
+            let m = single_my_material_assets.get_mut(&mh).unwrap();
+            m.iterations += 1;
+        }
+
+        for mh in double_material_handle.iter_mut() {
+            let m = double_my_material_assets.get_mut(&mh).unwrap();
+            m.iterations += 1;
+        }
+    }
+}
+
 #[derive(AsBindGroup, TypeUuid, Clone)]
 #[uuid = "bc2f08eb-a0fb-43f1-a908-54871ea597d5"]
-struct MyMaterial {}
+struct ComplexDivisorFractalSingleLoop {
+    #[uniform(0)]
+    iterations: i32,
+}
 
-impl Material2d for MyMaterial {
+impl Material2d for ComplexDivisorFractalSingleLoop {
     fn fragment_shader() -> ShaderRef {
-        "my_material.wgsl".into()
+        "cdf_single.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "196e05fa-1271-4dd7-a6b8-686c4b50bf02"]
+struct ComplexDivisorFractalDoubleLoop {
+    #[uniform(0)]
+    iterations: i32,
+}
+
+impl Material2d for ComplexDivisorFractalDoubleLoop {
+    fn fragment_shader() -> ShaderRef {
+        "cdf_double.wgsl".into()
+    }
+}
+
+#[derive(AsBindGroup, TypeUuid, Clone)]
+#[uuid = "dcb63d2f-2261-4659-b340-9eead095160e"]
+struct Mandelbrot {}
+
+impl Material2d for Mandelbrot {
+    fn fragment_shader() -> ShaderRef {
+        "mandelbrot.wgsl".into()
     }
 }
 
@@ -77,17 +138,7 @@ fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
 
     let scale = f32::min(size.x, size.y) / 1.0;
 
-    //camera.transform = Transform::from_translation(Vec3::new(
-    //    size.x / (scale * 2.0),
-    //    size.y / (scale * 2.0),
-    //    0.0,
-    //));
     camera.projection.scale = 1.0 / scale;
-    //camera.orthographic_projection.right = 1.0;
-    //camera.orthographic_projection.left = -1.0;
-    //camera.orthographic_projection.top = 1.0;
-    //camera.orthographic_projection.bottom = -1.0;
-    //camera.orthographic_projection.scaling_mode = ScalingMode::None;
 
     commands.spawn_bundle(camera);
 }
@@ -151,7 +202,6 @@ fn zoom_in(
             }
         }
 
-        // todo lag.
         let mesh_asset = mesh_assets.get_mut(&mesh.single_mut().clone().0).unwrap();
 
         let uvs: Vec<[f32; 2]> = vec![
