@@ -25,17 +25,6 @@ fn isGaussianInteger(r: vec2<f32>) -> bool {
 	return false;
 }
 
-// returns rgb from grayscale value and iteration count
-fn colorize(v: f32, current_iteration: i32, max_iterations: i32) -> vec3<f32> {
-    var
-
-
-    hsv = [powf((i / max) * 360, 1.5) % 360, 100, (i / max) * 100]
-}
-
-
-
-
 struct ComplexDivisorFractalDoubleLoop {
     iterations: i32,
 }

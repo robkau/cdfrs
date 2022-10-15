@@ -18,6 +18,8 @@ fn fragment(at: VertexOutput) -> @location(0) vec4<f32> {
           return output_color;
     }
 
+    // todo https://blocr.github.io/posts/fractal_generation.html
+
     var x = 0.0;
     var y = 0.0;
     var iteration = 0;

@@ -15,7 +15,6 @@ use bevy::{
     window::PresentMode,
 };
 use bevy_inspector_egui::{WorldInspectorParams, WorldInspectorPlugin};
-use std::process;
 
 pub const CLEAR: Color = Color::rgb(0.3, 0.3, 0.3);
 
@@ -44,14 +43,14 @@ fn main() {
         .add_system(toggle_inspector)
         .add_system(zoom_in)
         .add_system(update_material_iterations)
-        .add_system(handle_exit)
+        .add_system(bevy::window::close_on_esc)
         .run();
 }
 
 fn spawn_quad(
     mut commands: Commands,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    mut my_material_assets: ResMut<Assets<Mandelbrot>>,
+    mut my_material_assets: ResMut<Assets<ComplexDivisorFractalDoubleLoop>>,
 ) {
     let mut m = Mesh::from(shape::Quad::default());
     let uvs1 = vec![[-10.0, 10.0], [-10.0, -10.0], [10.0, -10.0], [10.0, 10.0]];
@@ -59,25 +58,37 @@ fn spawn_quad(
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
-        material: my_material_assets.add(Mandelbrot {}),
+        material: my_material_assets.add(ComplexDivisorFractalDoubleLoop { iterations: 12 }),
         ..default()
     });
 }
 
 fn update_material_iterations(
     input: ResMut<Input<KeyCode>>,
-    mut material_handle: Query<&mut Handle<ComplexDivisorFractalDoubleLoop>>,
-    mut my_material_assets: ResMut<Assets<ComplexDivisorFractalDoubleLoop>>,
+    mut single_material_handle: Query<&mut Handle<ComplexDivisorFractalSingleLoop>>,
+    mut single_my_material_assets: ResMut<Assets<ComplexDivisorFractalSingleLoop>>,
+    mut double_material_handle: Query<&mut Handle<ComplexDivisorFractalDoubleLoop>>,
+    mut double_my_material_assets: ResMut<Assets<ComplexDivisorFractalDoubleLoop>>,
 ) {
     if input.just_pressed(KeyCode::A) {
-        for mh in material_handle.iter_mut() {
-            let m = my_material_assets.get_mut(&mh).unwrap();
+        for mh in single_material_handle.iter_mut() {
+            let m = single_my_material_assets.get_mut(&mh).unwrap();
+            m.iterations -= 1;
+        }
+
+        for mh in double_material_handle.iter_mut() {
+            let m = double_my_material_assets.get_mut(&mh).unwrap();
             m.iterations -= 1;
         }
     }
     if input.just_pressed(KeyCode::D) {
-        for mh in material_handle.iter_mut() {
-            let m = my_material_assets.get_mut(&mh).unwrap();
+        for mh in single_material_handle.iter_mut() {
+            let m = single_my_material_assets.get_mut(&mh).unwrap();
+            m.iterations += 1;
+        }
+
+        for mh in double_material_handle.iter_mut() {
+            let m = double_my_material_assets.get_mut(&mh).unwrap();
             m.iterations += 1;
         }
     }
@@ -130,12 +141,6 @@ fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
     camera.projection.scale = 1.0 / scale;
 
     commands.spawn_bundle(camera);
-}
-
-fn handle_exit(input: ResMut<Input<KeyCode>>) {
-    if input.just_pressed(KeyCode::Q) {
-        process::exit(0);
-    }
 }
 
 fn toggle_inspector(
