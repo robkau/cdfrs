@@ -24,7 +24,7 @@ fn main() {
             window: WindowDescriptor {
                 title: "cfdrs".to_string(),
                 mode: BorderlessFullscreen,
-                present_mode: PresentMode::Fifo,
+                present_mode: PresentMode::Fifo, // todo try again after next release. https://github.com/bevyengine/bevy/pull/6460
                 resizable: false,
                 ..default()
             },
