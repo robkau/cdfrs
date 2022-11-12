@@ -24,7 +24,7 @@ fn main() {
             window: WindowDescriptor {
                 title: "cfdrs".to_string(),
                 mode: BorderlessFullscreen,
-                present_mode: PresentMode::Immediate,
+                present_mode: PresentMode::Fifo,
                 resizable: false,
                 ..default()
             },
