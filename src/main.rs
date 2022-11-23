@@ -14,33 +14,28 @@ use bevy::{
     sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
     window::PresentMode,
 };
-use bevy_inspector_egui::{WorldInspectorParams, WorldInspectorPlugin};
 
 pub const CLEAR: Color = Color::rgb(0.3, 0.3, 0.3);
 
 fn main() {
     App::new()
         .insert_resource(ClearColor(CLEAR))
-        .insert_resource(WindowDescriptor {
-            title: "cfdrs".to_string(),
-            mode: BorderlessFullscreen,
-            present_mode: PresentMode::Immediate,
-            resizable: false,
-            ..Default::default()
-        })
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                title: "cfdrs".to_string(),
+                mode: BorderlessFullscreen,
+                present_mode: PresentMode::Immediate,
+                resizable: false,
+                ..default()
+            },
+            ..default()
+        }))
         .add_plugin(Material2dPlugin::<ComplexDivisorFractalSingleLoop>::default())
         .add_plugin(Material2dPlugin::<ComplexDivisorFractalDoubleLoop>::default())
         .add_plugin(Material2dPlugin::<Mandelbrot>::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(spawn_quad)
-        .insert_resource(WorldInspectorParams {
-            enabled: false,
-            ..Default::default()
-        })
-        .add_plugin(WorldInspectorPlugin::new())
         .add_startup_system(spawn_camera)
-        .add_system(toggle_inspector)
         .add_system(zoom_in)
         .add_system(update_material_iterations)
         .add_system(bevy::window::close_on_esc)
@@ -56,7 +51,7 @@ fn spawn_quad(
     let uvs1 = vec![[-10.0, 10.0], [-10.0, -10.0], [10.0, -10.0], [10.0, 10.0]];
     m.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs1);
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: mesh_assets.add(m).into(),
         material: my_material_assets.add(ComplexDivisorFractalDoubleLoop { iterations: 15 }),
         ..default()
@@ -140,16 +135,7 @@ fn spawn_camera(mut commands: Commands, wnds: Res<Windows>) {
 
     camera.projection.scale = 1.0 / scale;
 
-    commands.spawn_bundle(camera);
-}
-
-fn toggle_inspector(
-    input: ResMut<Input<KeyCode>>,
-    mut window_params: ResMut<WorldInspectorParams>,
-) {
-    if input.just_pressed(KeyCode::Grave) {
-        window_params.enabled = !window_params.enabled
-    }
+    commands.spawn(camera);
 }
 
 struct ZoomState {
